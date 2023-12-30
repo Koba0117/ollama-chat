@@ -1,4 +1,4 @@
-package ollama-post
+package ollama_post
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ type Data struct {
 	Key3 bool   `json:"stream"`
 }
 
-func ollama-post() {
+func ollama_post() {
 	data := &Data{Key1: "mistral", Key2: "print hello world in go", Key3: false}
 
 	jsonValue, err := json.Marshal(data)
