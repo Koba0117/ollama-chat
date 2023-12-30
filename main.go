@@ -10,33 +10,22 @@ import (
 	"net/http"
 )
 
-type Film struct {
-	Title    string
-	Director string
-}
-
 func main() {
 	h1 := func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles("index.html"))
-		films := map[string][]Film{
-			"Films": {
-				{Title: "The Godfather", Director: "Fracis Ford Coppola"},
-				{Title: "Blade Runner", Director: "Ridley Scott"},
-				{Title: "The Thing", Director: "John Carpenter"},
-			},
-		}
-		tmpl.Execute(w, films)
+		tmpl.Execute(w, nil)
 	}
 
 	h2 := func(w http.ResponseWriter, r *http.Request) {
-		title := r.PostFormValue("title")
-		director := r.PostFormValue("director")
+		prompt := r.PostFormValue("form")
+		data := &Data{Key1: "mistral", Key2: prompt, Key3: false}
+
 		tmpl := template.Must(template.ParseFiles("index.html"))
-		tmpl.ExecuteTemplate(w, "film-list-element", Film{Title: title, Director: director})
+		tmpl.ExecuteTemplate(w, "chat", ollama(*data))
 	}
 
 	http.HandleFunc("/", h1)
-	http.HandleFunc("/add-film/", h2)
+	http.HandleFunc("/send-comment/", h2)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -46,19 +35,21 @@ type Data struct {
 	Key3 bool   `json:"stream"`
 }
 
-func ollama() {
-	data := &Data{Key1: "mistral", Key2: "print hello world in go", Key3: false}
+type ResponseData struct {
+	Response string `json:"response"`
+}
 
+func ollama(data Data) string {
 	jsonValue, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error marshaling JSON:", err)
-		return
+		return ""
 	}
 
 	req, err := http.NewRequest("POST", "http://localhost:11434/api/generate", bytes.NewBuffer(jsonValue))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return
+		return ""
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -66,18 +57,36 @@ func ollama() {
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
-		return
+		return ""
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
-		return
+		return ""
 	}
 
-	var responseData map[string]interface{}
-	json.Unmarshal([]byte(body), &responseData) // assuming the API returns a JSON response
+	var responseData ResponseData
+	err = json.Unmarshal(body, &responseData) // Decode response data into the struct
+	if err != nil {
+		fmt.Println("JSON parsing failed:", err)
+		return ""
+	}
 
-	fmt.Println("Response:", responseData)
+	return responseData.Response
+}
+
+func MarkdownToHTML(markdown string) (string, error) {
+	processor := commonmark.NewProcessor()
+	node, err := processor.Process(markdown, nil)
+	if err != nil {
+		return "", err
+	}
+	var buf bytes.Buffer
+	err = html.Render(&buf, node, nil)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
