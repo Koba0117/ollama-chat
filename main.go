@@ -10,6 +10,16 @@ import (
 	"net/http"
 )
 
+type RequestData struct {
+	Model  string `json:"model"`
+	Prompt string `json:"prompt"`
+	Stream bool   `json:"stream"`
+}
+
+type ResponseData struct {
+	Response string `json:"response"`
+}
+
 func main() {
 	h1 := func(w http.ResponseWriter, r *http.Request) {
 		tmpl := template.Must(template.ParseFiles("index.html"))
@@ -18,28 +28,18 @@ func main() {
 
 	h2 := func(w http.ResponseWriter, r *http.Request) {
 		prompt := r.PostFormValue("form")
-		data := &Data{Key1: "mistral", Key2: prompt, Key3: false}
+		data := &RequestData{Model: "mistral", Prompt: prompt, Stream: false}
 
 		tmpl := template.Must(template.ParseFiles("index.html"))
 		tmpl.ExecuteTemplate(w, "chat", ollama(*data))
 	}
 
 	http.HandleFunc("/", h1)
-	http.HandleFunc("/send-comment/", h2)
+	http.HandleFunc("/submit-prompt/", h2)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-type Data struct {
-	Key1 string `json:"model"`
-	Key2 string `json:"prompt"`
-	Key3 bool   `json:"stream"`
-}
-
-type ResponseData struct {
-	Response string `json:"response"`
-}
-
-func ollama(data Data) string {
+func ollama(data RequestData) string {
 	jsonValue, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error marshaling JSON:", err)
@@ -77,16 +77,16 @@ func ollama(data Data) string {
 	return responseData.Response
 }
 
-func MarkdownToHTML(markdown string) (string, error) {
-	processor := commonmark.NewProcessor()
-	node, err := processor.Process(markdown, nil)
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	err = html.Render(&buf, node, nil)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
+// func MarkdownToHTML(markdown string) (string, error) {
+// 	processor := commonmark.NewProcessor()
+// 	node, err := processor.Process(markdown, nil)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	var buf bytes.Buffer
+// 	err = html.Render(&buf, node, nil)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return buf.String(), nil
+// }
