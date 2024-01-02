@@ -8,6 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 )
 
 type RequestData struct {
@@ -17,7 +21,7 @@ type RequestData struct {
 }
 
 type ResponseData struct {
-	Response string `json:"response"`
+	Response template.HTML `json:"response"`
 }
 
 func main() {
@@ -39,7 +43,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func ollama(data RequestData) string {
+func ollama(data RequestData) template.HTML {
 	jsonValue, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error marshaling JSON:", err)
@@ -74,19 +78,19 @@ func ollama(data RequestData) string {
 		return ""
 	}
 
-	return responseData.Response
+	return template.HTML(mdToHTML([]byte(responseData.Response)))
 }
 
-// func MarkdownToHTML(markdown string) (string, error) {
-// 	processor := commonmark.NewProcessor()
-// 	node, err := processor.Process(markdown, nil)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	var buf bytes.Buffer
-// 	err = html.Render(&buf, node, nil)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return buf.String(), nil
-// }
+func mdToHTML(md []byte) []byte {
+	// create markdown parser with extensions
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse(md)
+
+	// create HTML renderer with extensions
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	return markdown.Render(doc, renderer)
+}
