@@ -12,9 +12,7 @@
 <body class="container">
 
   <div>
-    <div>
-      <h1>Chat</h1>
-
+    <div class="chat-area">
       <ul id="chat">
         {{ block "chat" .}}
         {{ .}}
@@ -23,12 +21,9 @@
     </div>
 
     <div>
-      <h1>Chat Form</h1>
-
       <form hx-post="/submit-prompt/" hx-target="#chat" hx-swap="beforeend" hx-indicator="#spinner">
-        <div>
-          <label for="form">Form</label>
-          <input type="text" name="form" id="prompt-form" />
+        <div class="prompt-area">
+          <textarea rows="2" cols="100" name="form" id="prompt-form"></textarea>
 
           <button type="submit">
             <span class="htmx-indicator" id="spinner" role="status" aria-hidden="true"></span>
@@ -43,5 +38,14 @@
 </body>
 
 <style>
+  .chat-area {
+    height: 90vh;
+    border: 1px solid black;
+    overflow: auto;
+  }
 
+  .prompt-area {
+    display: flex;
+    justify-content: center;
+  }
 </style>
